@@ -1,0 +1,4 @@
+Power will be provided over GPIO straight from regulated 5v power supply. 
+https://blog.dddac.com/raspberry-pi-5-power-over-gpio/
+
+Follow Flash-RPi5-and-adding-5000mA-Line-tutorial.pdf for disabling PI software lower power protections. 
