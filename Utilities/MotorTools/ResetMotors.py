@@ -3,7 +3,7 @@
 import serial
 import time
 import random
-
+import math
 
 def CheckSum(*args):
     hash = 0
@@ -336,14 +336,20 @@ def ServoLEDErrorRead(id):
     ba[5] = CheckSum(id, 3, 36)
     return ba;
 
+def SendPacket(p):
+    s = serial.Serial('/dev/ttyAMA0', 115200, timeout=1)
+    s.write(p)
+    s.close()
+
 def test():
     s = serial.Serial('/dev/ttyAMA0', 115200, timeout=1)
 
     for a in range(0, 100000):
-        angle = int(random.randrange(0, 1000))
-        print(f"Rotate to { (angle / 1000.0 - 1.0) * 140 }")
-        packet = ServoMoveTimeWrite(0xFE, angle, 000)
-        s.write(packet)
+        for b in range(2, 4):
+            angle = int(random.randrange(250, 750))
+            print(f"Rotate motor {b} to { (angle / 1000.0 - 1.0) * 140 }")
+            packet = ServoMoveTimeWrite(b, angle, 1000)
+            s.write(packet)
         time.sleep(2.0)
 
     s.close()
@@ -353,3 +359,49 @@ def ResetAllMotors():
     packet = ServoMoveTimeWrite(0xFE, 500, 1000)
     s.write(packet)
     s.close()
+
+
+def IKRaise(C):
+    C = 260 - C
+    A = 130
+    B = 130
+    s = serial.Serial('/dev/ttyAMA0', 115200, timeout=1)
+    elbowAngle = (math.acos((C*C -(A*A + B*B)) / (2 * A * B)) / math.pi * 180) / 140
+    s.close()
+
+
+#s = serial.Serial('/dev/ttyAMA0', 115200, timeout=1)
+#s.write(ServoPosRead(0x02))
+#result = s.read_all()
+#print(result)
+
+#ResetAllMotors()
+
+MotorAZero = 750
+MotorBZero = 490
+
+SendPacket(ServoMoveTimeWrite(0x2, MotorAZero, 1000))
+SendPacket(ServoMoveTimeWrite(0x3, MotorBZero, 1000))
+
+time.sleep(1.0)
+
+for i in range(0, 10):
+    C = 260 - i * 6
+    A = 130
+    B = 130
+    elbowAngle = int((math.acos((C*C -(A*A + B*B)) / (2 * A * B)) / math.pi) * 642)
+
+    rot = 0#i * 10
+    print(f"{C}: { elbowAngle }\n")
+    if elbowAngle < 500:
+        SendPacket(ServoMoveTimeWrite(0x2, -rot + MotorAZero - elbowAngle, 10))
+        SendPacket(ServoMoveTimeWrite(0x3, -rot + int(MotorBZero + elbowAngle / 2), 100))
+        
+    time.sleep(0.1)
+
+
+time.sleep(1.0)
+
+
+SendPacket(ServoMoveTimeWrite(0x2, MotorAZero, 300))
+SendPacket(ServoMoveTimeWrite(0x3, MotorBZero, 300))
